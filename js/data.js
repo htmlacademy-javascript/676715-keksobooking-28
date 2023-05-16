@@ -1,6 +1,7 @@
 import {getRandomInteger, getRandomFloating, getRandomArrayElement} from './util.js';
 
 const ADS_COUNT = 10;
+// const ADS_COUNT = 1;
 const AVATAR_COUNT = 10;
 const HOUSING_LAT_MIN = 35.65000;
 const HOUSING_LAT_MAX = 35.70000;
@@ -30,13 +31,13 @@ const ADS_DESCRIPTIONS = [
   'Находится в престижном районе города',
   'Находится в исторической части города'
 ];
-const HOUSING_TYPES = [
-  'palace',
-  'flat',
-  'house',
-  'bungalow',
-  'hotel'
-];
+const HOUSING_TYPES = {
+  palace: 'Дворец',
+  flat: 'Квартира',
+  house: 'Дом',
+  bungalow: 'Бунгало',
+  hotel: 'Отель'
+};
 const HOUSING_FEATURES = [
   'wifi',
   'dishwasher',
@@ -72,6 +73,8 @@ const getLocation = () => ({
 
 const createArray = (dates) => Array.from({length: getRandomInteger(1, dates.length)}, () => getRandomArrayElement(dates));
 
+const leaveUniqueElements = (array) => array.filter((item, i) => i === array.indexOf(item));
+
 const createSimilarAd = () => {
   const location = getLocation();
   const ad = {
@@ -81,16 +84,16 @@ const createSimilarAd = () => {
     location,
     offer:{
       title: getRandomArrayElement(ADS_TITLES),
-      address: location,
-      price: getRandomInteger(1, 100),
-      type: getRandomArrayElement(HOUSING_TYPES),
-      rooms: getRandomInteger(1, 7),
+      address: Object.values(location).join(', '),
+      price: getRandomInteger(100, 1000),
+      type: getRandomArrayElement(Object.keys(HOUSING_TYPES)),
+      rooms: getRandomInteger(1, 10),
       guests: getRandomInteger(1, 10),
       checkin: getRandomArrayElement(CHECKIN_CHECKOUT_TIME),
       checkout: getRandomArrayElement(CHECKIN_CHECKOUT_TIME),
-      features: createArray(HOUSING_FEATURES),
+      features: leaveUniqueElements(createArray(HOUSING_FEATURES)),
       description: getRandomArrayElement(ADS_DESCRIPTIONS),
-      photos: createArray(HOUSING_PHOTOS)
+      photos: leaveUniqueElements(createArray(HOUSING_PHOTOS))
     }
   };
   return ad;
@@ -98,4 +101,4 @@ const createSimilarAd = () => {
 
 const getSimilarAds = () => Array.from({length: ADS_COUNT}, (_, index) => createSimilarAd(index + 1));
 
-export {getSimilarAds};
+export {HOUSING_TYPES, getSimilarAds};
