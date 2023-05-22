@@ -1,4 +1,4 @@
-import {getRandomInteger, getRandomFloating, getRandomArrayElement} from './util.js';
+// import {getRandomInteger, getRandomFloating, getRandomArrayElement} from './util.js';
 
 const ADS_COUNT = 10;
 // const ADS_COUNT = 1;

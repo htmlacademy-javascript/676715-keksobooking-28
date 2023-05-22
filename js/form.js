@@ -1,4 +1,8 @@
-import {HOUSING_TYPES} from './data.js';
+// import {HOUSING_TYPES, showAlert} from './util.js';
+// import {sendData} from './api.js';
+import {HOUSING_TYPES} from './util.js';
+// import {resetMainMarker, renderMainMarker} from './map.js';
+import {resetMainMarker} from './map.js';
 
 const ROOM_ERROR_TEXT = 'Размещение невозможно';
 
@@ -14,6 +18,8 @@ const roomNumberField = adForm.querySelector('[name="rooms"]');
 const capacityField = adForm.querySelector('[name="capacity"]');
 const checkinField = adForm.querySelector('[name="timein"]');
 const checkoutField = adForm.querySelector('[name="timeout"]');
+const submitButton = adForm.querySelector('.ad-form__submit');
+const resetButton = adForm.querySelector('.ad-form__reset');
 
 const roomOption = {
   '1': ['1'],
@@ -27,6 +33,10 @@ const priceOption = {
   'Отель': 3000,
   'Дом': 5000,
   'Дворец': 10000
+};
+const SubmitButtonText = {
+  IDLE: 'Опубликовать',
+  SENDING: 'Опубликовываю...'
 };
 
 const disableMapFilter = () => {
@@ -59,9 +69,10 @@ const activateAdForm = () => {
 
 const pristine = new Pristine(adForm, {
   classTo: 'ad-form__element',
+  errorClass: 'ad-form__element--invalid',
   errorTextParent: 'ad-form__element',
   errorTextTag: 'span',
-  errorTextClass: 'ad-form__label_error-text'
+  errorTextClass: 'text-help'
 });
 
 // Валидация типа жилья
@@ -127,17 +138,46 @@ checkoutField.onchange = function () {
   checkinField.value = checkoutField.value;
 };
 
+// Кнопка отправки формы
+
+const blockSubmitButton = () => {
+  submitButton.disabled = true;
+  submitButton.textContent = SubmitButtonText.SENDING;
+};
+
+const unblockSubmitButton = () => {
+  submitButton.disabled = false;
+  submitButton.textContent = SubmitButtonText.IDLE;
+};
+
 // Отправка формы
 
-adForm.addEventListener('submit', (evt) => {
-  evt.preventDefault();
+const setOnFormSubmit = (onSuccess) => {
+  adForm.addEventListener('submit', async (evt) => {
+    evt.preventDefault();
 
-  const isValid = pristine.validate();
-  if (isValid) {
-    console.log('Можно отправлять');
-  } else {
-    console.log('Форма невалидна');
-  }
+    const isValid = pristine.validate();
+
+    if (isValid) {
+      blockSubmitButton();
+      await onSuccess(new FormData(adForm));
+      unblockSubmitButton();
+    }
+  });
+};
+
+const resetForm = () => {
+  // debugger;
+  adForm.reset();
+  resetMainMarker();
+};
+
+// resetButton.addEventListener('click', resetForm);
+resetButton.addEventListener('click', () => {
+  resetForm();
+  // debugger;
 });
 
-export {disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField};
+// export {disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField};
+// export {disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField, setOnFormSubmit};
+export {resetForm, disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField, setOnFormSubmit};

@@ -1,4 +1,5 @@
-import {HOUSING_TYPES} from './data.js';
+// import {HOUSING_TYPES} from './data.js';
+import {HOUSING_TYPES} from './util.js';
 
 // const mapCanvas = document.querySelector('#map-canvas');
 const AdTemplate = document.querySelector('#card').content.querySelector('.popup');
@@ -193,6 +194,9 @@ const renderAd = ({author, offer}) => {
   };
 
   const renderFeaturesList = (features) => {
+    if (!features) {
+      return;
+    }
     const featuresContainer = AdTemplate.querySelector('.popup__features');
     const featuresListFragment = document.createDocumentFragment();
     features.forEach((feature) => {
@@ -206,7 +210,7 @@ const renderAd = ({author, offer}) => {
   };
 
   const renderPhotosList = (photos) => {
-    if (photos === 0) {
+    if (!photos) {
       return;
     }
     const photosListFragment = document.createDocumentFragment();
@@ -309,11 +313,11 @@ const renderAd = ({author, offer}) => {
     if ((condition !== offer.features) && (condition !== offer.photos)) {
       AdElement[property] = propertyValue;
     } else {
-      if (condition === offer.features) {
+      if ((condition === offer.features) && (offer.features)) {
         AdElement.innerHTML = '';
         AdElement[property](propertyValue);
       } else {
-        if (condition === offer.photos) {
+        if ((condition === offer.photos) && (offer.photos)) {
           AdElement.innerHTML = '';
           AdElement[property](propertyValue);
         } else {
