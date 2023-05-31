@@ -1,12 +1,14 @@
-// import {getSimilarAds} from './data.js';
-// import {getData} from './api.js';
-// import {showAlert} from './util.js';
 import {addressField} from './form.js';
 import {renderAd} from './ads.js';
+import {debounce} from './util.js';
 
 const TILE_LAYER = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const COPYRIGHT = '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const ZOOM = 13;
+const MARKERS_COUNT = 10;
+const HOUSING_NOT_FOR_GUESTS = 100;
+const RERENDER_DELAY = 500;
+
 const mainIconConfig = {
   url: '../img/main-pin.svg',
   width: 52,
@@ -14,7 +16,7 @@ const mainIconConfig = {
   anchorX: 26,
   anchorY: 52
 };
-const iconConfig = {
+const simpleIconConfig = {
   url: '../img/pin.svg',
   width: 40,
   height: 40,
@@ -25,124 +27,55 @@ const cityCenter = {
   lat: 35.68149,
   lng: 139.76719,
 };
+const priceFilterValue = {
+  low: {
+    min: 0,
+    max: 9999
+  },
+  middle: {
+    min: 10000,
+    max: 50000
+  },
+  high: {
+    min: 50001,
+    max: Infinity
+  }
+};
+
+const mapFilter = document.querySelector('.map__filters');
+const housingFilterItem = mapFilter.querySelector('[name="housing-type"]');
+const priceFilterItem = mapFilter.querySelector('[name="housing-price"]');
+const roomsFilterItem = mapFilter.querySelector('[name="housing-rooms"]');
+const guestsFilterItem = mapFilter.querySelector('[name="housing-guests"]');
+const featuresFilterItems = mapFilter.querySelectorAll('[name="features"]');
+
 let mainMarker;
 let mainMarkerTempCoordinate;
 let mainMarkerCoordinate;
 let map;
-
-
-// ------- рабочий вариант - карта + маркер объявления из формы + маркеры объявлений с сервера, а в main.js только 1 строка - import './map.js';
-// import {getData} from './api.js';
-// import {showAlert} from './util.js';
-// import {addressField} from './form.js';
-// import {renderAd} from './ads.js';
-
-// const map = L.map('map-canvas').on('load', () => {
-//   console.log('Карта инициализирована');
-// }).setView(cityCenter, ZOOM);
-// L.tileLayer(TILE_LAYER, {attribution: COPYRIGHT}).addTo(map);
-
-// const mainIcon = L.icon({
-//   iconUrl: mainIconConfig.url,
-//   iconSize: [mainIconConfig.width, mainIconConfig.height],
-//   iconAnchor: [mainIconConfig.anchorX, mainIconConfig.anchorY]
-// });
-
-// const mainMarker = L.marker(cityCenter, {
-//   draggable: true,
-//   icon: mainIcon
-// });
-
-// mainMarker.addTo(map);
-// mainMarker.on('moveend', (evt) => {
-//   mainMarkerTempCoordinate = Object.values(evt.target.getLatLng());
-//   mainMarkerCoordinate = mainMarkerTempCoordinate.map((coordinate) => coordinate.toFixed(5)).join(', ');
-//   // console.log(`mainMarkerCoordinate: ${mainMarkerCoordinate}`);
-//   addressField.value = mainMarkerCoordinate;
-// });
-
-// // Если основная метка не сдвинута, то её координаты равны координатам центра города
-
-// if (!mainMarkerCoordinate) {
-//   addressField.value = Object.values(cityCenter).join(', ');
-// }
-
-// const icon = L.icon({
-//   iconUrl: iconConfig.url,
-//   iconSize: [iconConfig.width, iconConfig.height],
-//   iconAnchor: [iconConfig.anchorX, iconConfig.anchorY]
-// });
-
-// const renderMarkers = (ads) => {
-//   // const renderMarkers = (data) => {
-//   // временно первые 5 объявлений
-//   // const ads = data.slice(0, 5);
-//   console.log (ads);
-//   ads.forEach(({author, location, offer}) => {
-//     const lat = (location.lat).toFixed(5);
-//     const lng = (location.lng).toFixed(5);
-//     const marker = L.marker(
-//       {
-//         lat,
-//         lng
-//       },
-//       {
-//         icon
-//       }
-//     );
-//     marker.addTo(map).bindPopup(renderAd({author, offer}));
-//   });
-// };
-
-// try {
-//   const data = await getData();
-//   // debugger;
-//   renderMarkers(data);
-// } catch (err) {
-//   showAlert(err.message);
-// }
-// -----
-
-// новый вариант
+let markerGroup;
+let defaultMarkers;
+let filteredMarkers;
 
 const renderMap = () => {
-  // c console.log
-  // map = L.map('map-canvas').on('load', () => {
-  //   console.log('Карта инициализирована');
-  // }).setView(cityCenter, ZOOM);
-
-  // без console.log
   map = L.map('map-canvas').setView(cityCenter, ZOOM);
-
   L.tileLayer(TILE_LAYER, {attribution: COPYRIGHT}).addTo(map);
 };
 
 const resetMainMarker = () => {
-  // вариант до доработок
-  // if (!mainMarkerCoordinate) {
-  //   addressField.value = Object.values(cityCenter).join(', ');
-  // }
-
-  // удаление маркера
-  //
-  // if (addressField.value === 0) {
-  //   mainMarker.remove();
-  // }
-  // if (!mainMarkerCoordinate) {
+  map.setView(cityCenter, ZOOM);
   mainMarker.setLatLng(cityCenter);
-  console.log(`addressField.value до обнуления: ${addressField.value}`);
   addressField.value = Object.values(cityCenter).join(', ');
-  console.log(`addressField.value с координатами центра: ${addressField.value}`);
-  // return addressField.value;
-  // }
 };
 
+const getIconConfig = (iconConfig) => ({
+  iconUrl: iconConfig.url,
+  iconSize: [iconConfig.width, iconConfig.height],
+  iconAnchor: [iconConfig.anchorX, iconConfig.anchorY]
+});
+
 const renderMainMarker = () => {
-  const mainIcon = L.icon({
-    iconUrl: mainIconConfig.url,
-    iconSize: [mainIconConfig.width, mainIconConfig.height],
-    iconAnchor: [mainIconConfig.anchorX, mainIconConfig.anchorY]
-  });
+  const mainIcon = L.icon(getIconConfig(mainIconConfig));
 
   mainMarker = L.marker(cityCenter, {
     draggable: true,
@@ -153,50 +86,88 @@ const renderMainMarker = () => {
   mainMarker.on('moveend', (evt) => {
     mainMarkerTempCoordinate = Object.values(evt.target.getLatLng());
     mainMarkerCoordinate = mainMarkerTempCoordinate.map((coordinate) => coordinate.toFixed(5)).join(', ');
-    // console.log(`mainMarkerCoordinate: ${mainMarkerCoordinate}`);
     addressField.value = mainMarkerCoordinate;
   });
 
-  // Если основная метка не сдвинута, то её координаты равны координатам центра города
-  // рабочий вариант без очистки формы
-  // resetMainMarker();
-
-
-  // if (!mainMarkerCoordinate) {
-  //   addressField.value = Object.values(cityCenter).join(', ');
-  // }
   if (!mainMarkerCoordinate) {
     resetMainMarker();
   }
-  // resetMainMarker();
 };
 
-// const ads = getSimilarAds();
+const renderMarkers = ({author, location, offer}) => {
+  const simpleIcon = L.icon(getIconConfig(simpleIconConfig));
+  const lat = (location.lat).toFixed(5);
+  const lng = (location.lng).toFixed(5);
+  const marker = L.marker(
+    {
+      lat,
+      lng
+    },
+    {
+      simpleIcon
+    }
+  );
+  marker.addTo(markerGroup).bindPopup(renderAd({author, offer}));
+};
 
-const renderMarkers = (ads) => {
-  const icon = L.icon({
-    iconUrl: iconConfig.url,
-    iconSize: [iconConfig.width, iconConfig.height],
-    iconAnchor: [iconConfig.anchorX, iconConfig.anchorY]
+const createMarkers = (data) => {
+  markerGroup = L.layerGroup().addTo(map);
+  const ads = data.slice(0, MARKERS_COUNT);
+  ads.forEach((marker) => renderMarkers(marker));
+};
+
+// Фильтрация меток
+const getFilteredMarkers = () => {
+  if (housingFilterItem.value !== 'any') {
+    filteredMarkers = filteredMarkers.filter((marker) => marker.offer.type === housingFilterItem.value);
+  }
+  if (priceFilterItem.value !== 'any') {
+    const minPrice = priceFilterValue[priceFilterItem.value].min;
+    const maxPrice = priceFilterValue[priceFilterItem.value].max;
+    filteredMarkers = filteredMarkers.filter((marker) => marker.offer.price >= minPrice && marker.offer.price <= maxPrice);
+  }
+  if (roomsFilterItem.value !== 'any') {
+    filteredMarkers = filteredMarkers.filter((marker) => marker.offer.rooms === Number(roomsFilterItem.value));
+  }
+  if ((guestsFilterItem.value !== 'any') && (guestsFilterItem.value !== Number('0'))) {
+    filteredMarkers = filteredMarkers.filter((marker) => marker.offer.guests === Number(guestsFilterItem.value));
+  } else if (guestsFilterItem.value === Number('0')) {
+    filteredMarkers = filteredMarkers.filter((marker) => marker.offer.guests === HOUSING_NOT_FOR_GUESTS);
+  }
+  featuresFilterItems.forEach((featuresFilterItem) => {
+    if (featuresFilterItem.checked) {
+      filteredMarkers = filteredMarkers.filter((marker) => {
+        const featureArrayValues = marker.offer.features;
+        if (featureArrayValues) {
+          return featureArrayValues.includes(featuresFilterItem.value);
+        } else {
+          return false;
+        }
+      });
+    }
   });
-  // const renderMarkers = (data) => {
-  // временно первые 5 объявлений
-  // const ads = data.slice(0, 5);
-  // console.log (ads);
-  ads.forEach(({author, location, offer}) => {
-    const lat = (location.lat).toFixed(5);
-    const lng = (location.lng).toFixed(5);
-    const marker = L.marker(
-      {
-        lat,
-        lng
-      },
-      {
-        icon
-      }
-    );
-    marker.addTo(map).bindPopup(renderAd({author, offer}));
+  markerGroup.clearLayers();
+  createMarkers(filteredMarkers);
+};
+
+const debounceFilter = debounce(getFilteredMarkers, RERENDER_DELAY);
+
+const printFilteredMarkers = (points) => {
+  mapFilter.addEventListener('change', () => {
+    defaultMarkers = points;
+    filteredMarkers = points;
+    debounceFilter();
   });
 };
 
-export {renderMap, renderMainMarker, renderMarkers, resetMainMarker};
+const resetMarkersPopup = () => {
+  map.closePopup();
+};
+
+const resetFilter = () => {
+  mapFilter.reset();
+  filteredMarkers = defaultMarkers;
+  getFilteredMarkers();
+};
+
+export {renderMap, renderMainMarker, createMarkers, printFilteredMarkers, resetMainMarker, resetMarkersPopup, resetFilter};

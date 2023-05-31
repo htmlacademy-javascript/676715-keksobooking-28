@@ -1,13 +1,11 @@
-// import {HOUSING_TYPES, showAlert} from './util.js';
-// import {sendData} from './api.js';
 import {HOUSING_TYPES} from './util.js';
-// import {resetMainMarker, renderMainMarker} from './map.js';
-import {resetMainMarker} from './map.js';
+import {resetMainMarker, resetMarkersPopup, resetFilter} from './map.js';
 
 const ROOM_ERROR_TEXT = 'Размещение невозможно';
+const FILE_TYPES = ['jpg', 'jpeg', 'png'];
 
-const mapFilter = document.querySelector('.map__filters');
-const childrenMapFilter = mapFilter.children;
+const filtersForm = document.querySelector('.map__filters');
+const childrenFiltersForm = filtersForm.children;
 const adForm = document.querySelector('.ad-form');
 const childrenAdForm = adForm.children;
 const addressField = adForm.querySelector('#address');
@@ -18,6 +16,10 @@ const roomNumberField = adForm.querySelector('[name="rooms"]');
 const capacityField = adForm.querySelector('[name="capacity"]');
 const checkinField = adForm.querySelector('[name="timein"]');
 const checkoutField = adForm.querySelector('[name="timeout"]');
+const avatarFileChooser = document.querySelector('.ad-form__field input[type=file]');
+const avatarPreview = document.querySelector('.ad-form-header__preview img');
+const photoFileChooser = document.querySelector('.ad-form__upload input[type=file]');
+const photoPreviewContainer = document.querySelector('.ad-form__photo');
 const submitButton = adForm.querySelector('.ad-form__submit');
 const resetButton = adForm.querySelector('.ad-form__reset');
 
@@ -39,10 +41,10 @@ const SubmitButtonText = {
   SENDING: 'Опубликовываю...'
 };
 
-const disableMapFilter = () => {
-  mapFilter.classList.add('ad-form--disabled');
-  for (let i = 0; i < childrenMapFilter.length; i++) {
-    childrenMapFilter[i].disabled = true;
+const disableFiltersForm = () => {
+  filtersForm.classList.add('ad-form--disabled');
+  for (let i = 0; i < childrenFiltersForm.length; i++) {
+    childrenFiltersForm[i].disabled = true;
   }
 };
 
@@ -53,10 +55,10 @@ const disableAdForm = () => {
   }
 };
 
-const activateMapFilter = () => {
-  mapFilter.classList.remove('ad-form--disabled');
-  for (let i = 0; i < childrenMapFilter.length; i++) {
-    childrenMapFilter[i].disabled = false;
+const activateFiltersForm = () => {
+  filtersForm.classList.remove('ad-form--disabled');
+  for (let i = 0; i < childrenFiltersForm.length; i++) {
+    childrenFiltersForm[i].disabled = false;
   }
 };
 
@@ -76,17 +78,16 @@ const pristine = new Pristine(adForm, {
 });
 
 // Валидация типа жилья
-
 const validateRoom = () => roomOption[Number(roomNumberField.value)].includes(capacityField.value);
 
 pristine.addValidator(capacityField, validateRoom, ROOM_ERROR_TEXT);
 
+// можно заменить на стрелочную функцию?
 housingTypeField.onchange = function () {
   priceField.placeholder = priceOption[HOUSING_TYPES[housingTypeField.value]];
 };
 
 // Валидация цены за ночь
-
 const validatePrice = () => {
   if (priceField.value >= priceOption[HOUSING_TYPES[housingTypeField.value]]) {
     return true;
@@ -100,7 +101,6 @@ const getPriceMessage = () => `Минимальная цена должна бы
 pristine.addValidator(priceField, validatePrice, getPriceMessage);
 
 // Слайдер цены
-
 priceField.value = 0;
 
 noUiSlider.create(sliderElement, {
@@ -108,7 +108,8 @@ noUiSlider.create(sliderElement, {
     min: 0,
     max: 100000
   },
-  start: 1000,
+  // start: 1000,
+  start: 0,
   step: 100,
   connect: 'lower',
   format: {
@@ -128,8 +129,13 @@ sliderElement.noUiSlider.on('update', () => {
   priceField.value = sliderElement.noUiSlider.get();
 });
 
-// Валидация времени заезда и выезда
+const resetPriceSlider = () => {
+  sliderElement.noUiSlider.set(0);
+  priceField.value = null;
+};
+priceField.value = null;
 
+// Валидация времени заезда и выезда
 checkinField.onchange = function () {
   checkoutField.value = checkinField.value;
 };
@@ -138,8 +144,31 @@ checkoutField.onchange = function () {
   checkinField.value = checkoutField.value;
 };
 
-// Кнопка отправки формы
+// Аватарка пользователя
+avatarFileChooser.addEventListener('change', () => {
+  const file = avatarFileChooser.files[0];
+  const fileName = file.name.toLowerCase();
+  const matches = FILE_TYPES.some((it) => fileName.endsWith(it));
+  if (matches) {
+    avatarPreview.src = URL.createObjectURL(file);
+  }
+});
 
+// Фотография объявления
+photoFileChooser.addEventListener('change', () => {
+  const file = photoFileChooser.files[0];
+  const fileName = file.name.toLowerCase();
+  const matches = FILE_TYPES.some((it) => fileName.endsWith(it));
+  if (matches) {
+    const photoAd = document.createElement('img');
+    photoAd.width = 70;
+    photoAd.height = 70;
+    photoAd.src = URL.createObjectURL(file);
+    photoPreviewContainer.appendChild(photoAd);
+  }
+});
+
+// Кнопка отправки формы
 const blockSubmitButton = () => {
   submitButton.disabled = true;
   submitButton.textContent = SubmitButtonText.SENDING;
@@ -151,7 +180,6 @@ const unblockSubmitButton = () => {
 };
 
 // Отправка формы
-
 const setOnFormSubmit = (onSuccess) => {
   adForm.addEventListener('submit', async (evt) => {
     evt.preventDefault();
@@ -167,17 +195,17 @@ const setOnFormSubmit = (onSuccess) => {
 };
 
 const resetForm = () => {
-  // debugger;
   adForm.reset();
+  resetPriceSlider();
+  pristine.reset();
   resetMainMarker();
+  resetFilter();
+  resetMarkersPopup();
 };
 
-// resetButton.addEventListener('click', resetForm);
-resetButton.addEventListener('click', () => {
+resetButton.addEventListener('click', (evt) => {
+  evt.preventDefault();
   resetForm();
-  // debugger;
 });
 
-// export {disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField};
-// export {disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField, setOnFormSubmit};
-export {resetForm, disableMapFilter, disableAdForm, activateMapFilter, activateAdForm, addressField, setOnFormSubmit};
+export {resetForm, disableFiltersForm, disableAdForm, activateFiltersForm, activateAdForm, addressField, setOnFormSubmit};

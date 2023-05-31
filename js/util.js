@@ -1,21 +1,3 @@
-// const getRandomInteger = (a, b) => {
-//   const lower = Math.ceil(Math.min(a, b));
-//   const upper = Math.floor(Math.max(a, b));
-//   const result = Math.random() * (upper - lower + 1) + lower;
-//   return Math.floor(result);
-// };
-
-// const getRandomFloating = (a, b) => {
-//   const lower = Math.min(a, b);
-//   const upper = Math.max(a, b);
-//   const result = Math.random() * (upper - lower + 1) + lower;
-//   return result.toFixed(5);
-// };
-
-// const getRandomArrayElement = (array) => array[getRandomInteger(0, array.length - 1)];
-
-// export {getRandomInteger, getRandomFloating, getRandomArrayElement};
-
 const ALERT_SHOW_TIME = 5000;
 const HOUSING_TYPES = {
   palace: 'Дворец',
@@ -48,4 +30,12 @@ const showAlert = (message) => {
 
 const isEscapeKey = (evt) => evt.key === 'Escape';
 
-export {HOUSING_TYPES, showAlert, isEscapeKey};
+const debounce = (callback, timeoutDelay) => {
+  let timeoutId;
+  return (...rest) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => callback.apply(this, rest), timeoutDelay);
+  };
+};
+
+export {HOUSING_TYPES, showAlert, isEscapeKey, debounce};

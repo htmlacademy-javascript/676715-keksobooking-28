@@ -1,18 +1,16 @@
 import {isEscapeKey} from './util.js';
 
 const successMessage = document.querySelector('#success').content.querySelector('.success');
-// const successButton = successMessage.querySelector('.success__button');
 const errorMessage = document.querySelector('#error').content.querySelector('.error');
 const errorButton = errorMessage.querySelector('.error__button');
 
 const closeSuccessMessage = () => successMessage.remove();
 const closeErrorMessage = () => errorMessage.remove();
-// const onSuccessButtonClick = () => closeSuccessMessage();
 const onErrorButtonClick = () => closeErrorMessage();
 
 const onSuccessClickOutside = (evt) => {
-  // const successMessageInner = successMessage.querySelector('.success__inner');
-  if (!successMessage.contains(evt.target)) {
+  const isEvent = evt.target.closest('.success');
+  if (isEvent) {
     closeSuccessMessage();
     document.removeEventListener('click', onSuccessClickOutside);
     document.removeEventListener('keydown', onDocumentKeydown);
@@ -20,8 +18,8 @@ const onSuccessClickOutside = (evt) => {
 };
 
 const onErrorClickOutside = (evt) => {
-  // const errorMessageInner = errorMessage.querySelector('.error__inner');
-  if (!errorMessage.contains(evt.target)) {
+  const isEvent = evt.target.closest('.error');
+  if (isEvent) {
     closeErrorMessage();
     document.removeEventListener('click', onErrorClickOutside);
     document.removeEventListener('keydown', onDocumentKeydown);
@@ -29,17 +27,16 @@ const onErrorClickOutside = (evt) => {
 };
 
 const openSuccessMessage = () => {
-  document.querySelector('body').append(successMessage);
-  // successButton.addEventListener('click', onSuccessButtonClick);
+  document.body.append(successMessage);
   document.addEventListener('keydown', onDocumentKeydown);
   document.addEventListener('click', onSuccessClickOutside);
 };
 
 const openErrorMessage = () => {
-  document.querySelector('body').append(errorMessage);
+  document.body.append(errorMessage);
   errorButton.addEventListener('click', onErrorButtonClick);
-  document.addEventListener('keydown', onDocumentKeydown);
   document.addEventListener('click', onErrorClickOutside);
+  document.addEventListener('keydown', onDocumentKeydown);
 };
 
 function onDocumentKeydown(evt) {
