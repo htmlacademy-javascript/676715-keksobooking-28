@@ -49,6 +49,7 @@ const roomsFilterItem = mapFilter.querySelector('[name="housing-rooms"]');
 const guestsFilterItem = mapFilter.querySelector('[name="housing-guests"]');
 const featuresFilterItems = mapFilter.querySelectorAll('[name="features"]');
 
+
 let mainMarker;
 let mainMarkerTempCoordinate;
 let mainMarkerCoordinate;
@@ -60,6 +61,7 @@ let filteredMarkers;
 const renderMap = () => {
   map = L.map('map-canvas').setView(cityCenter, ZOOM);
   L.tileLayer(TILE_LAYER, {attribution: COPYRIGHT}).addTo(map);
+  map.scrollWheelZoom.disable();
 };
 
 const resetMainMarker = () => {
@@ -152,13 +154,14 @@ const getFilteredMarkers = () => {
 
 const debounceFilter = debounce(getFilteredMarkers, RERENDER_DELAY);
 
-const printFilteredMarkers = (points) => {
-  mapFilter.addEventListener('change', () => {
-    defaultMarkers = points;
-    filteredMarkers = points;
-    debounceFilter();
-  });
+const activateFilteredMarkers = (points) => {
+  defaultMarkers = points;
+  filteredMarkers = points;
 };
+
+mapFilter.addEventListener('change', () => {
+  debounceFilter();
+});
 
 const resetMarkersPopup = () => {
   map.closePopup();
@@ -170,4 +173,4 @@ const resetFilter = () => {
   getFilteredMarkers();
 };
 
-export {renderMap, renderMainMarker, createMarkers, printFilteredMarkers, resetMainMarker, resetMarkersPopup, resetFilter};
+export {renderMap, renderMainMarker, createMarkers, activateFilteredMarkers, resetMainMarker, resetMarkersPopup, resetFilter};
