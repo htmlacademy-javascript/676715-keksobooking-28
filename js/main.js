@@ -1,5 +1,5 @@
 import {resetForm, disableFiltersForm, disableAdForm, activateFiltersForm, activateAdForm, setOnFormSubmit} from './form.js';
-import {renderMap, renderMainMarker, createMarkers, printFilteredMarkers} from './map.js';
+import {renderMap, renderMainMarker, createMarkers, activateFilteredMarkers} from './map.js';
 import {openSuccessMessage, openErrorMessage} from './messages.js';
 import {getData, sendData} from './api.js';
 import {showAlert} from './util.js';
@@ -14,7 +14,7 @@ try {
   const data = await getData();
   createMarkers(data);
   activateFiltersForm();
-  printFilteredMarkers(data);
+  activateFilteredMarkers(data);
 } catch (err) {
   showAlert(err.message);
 }
